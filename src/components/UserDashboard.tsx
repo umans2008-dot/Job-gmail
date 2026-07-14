@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, Transaction, Withdrawal, Announcement, GmailRate } from '../types';
+import { exportToCSV } from '../utils';
 import { 
   Plus, Check, Copy, Trash2, ClipboardList, TrendingUp, AlertCircle, 
   HelpCircle, Sparkles, Send, Coins, ArrowUpRight, ArrowDownLeft, Clock, 
@@ -61,6 +62,8 @@ export default function UserDashboard({
     if (!inputGmails.trim()) return [];
     
     const lines = inputGmails.split('\n');
+    const seenEmails = new Set<string>();
+
     return lines.map((line, idx) => {
       const trimmed = line.trim();
       if (!trimmed) return null;
@@ -87,12 +90,19 @@ export default function UserDashboard({
       const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.toLowerCase().endsWith('gmail.com');
       const hasPass = pass.length > 0;
       
-      // According to Juragan Gmail rules: Email & No. Pemulihan: Wajib KOSONG
-      const isValid = isEmailValid && hasPass;
+      const emailLower = email.toLowerCase();
+      const isDuplicate = isEmailValid ? seenEmails.has(emailLower) : false;
+      if (isEmailValid && !isDuplicate) {
+        seenEmails.add(emailLower);
+      }
+      
+      // According to Juragan Gmail rules: Email must be valid, have a password, and not be duplicate
+      const isValid = isEmailValid && hasPass && !isDuplicate;
       let error = '';
       if (!email) error = 'Email kosong';
       else if (!isEmailValid) error = 'Format Gmail tidak valid';
       else if (!hasPass) error = 'Password kosong';
+      else if (isDuplicate) error = 'Duplikat (Sudah ada di baris atas)';
 
       return {
         lineIndex: idx + 1,
@@ -101,6 +111,7 @@ export default function UserDashboard({
         pass,
         recovery,
         isValid,
+        isDuplicate,
         error
       };
     }).filter(Boolean) as Array<{
@@ -110,6 +121,7 @@ export default function UserDashboard({
       pass: string;
       recovery: string;
       isValid: boolean;
+      isDuplicate: boolean;
       error: string;
     }>;
   }, [inputGmails]);
@@ -119,9 +131,7 @@ export default function UserDashboard({
     const validCount = parsedGmails.filter(p => p.isValid).length;
     const invalidCount = total - validCount;
 
-    const emails = parsedGmails.map(p => p.email.toLowerCase());
-    const uniqueEmails = new Set(emails);
-    const duplicatesCount = total - uniqueEmails.size;
+    const duplicatesCount = parsedGmails.filter(p => p.isDuplicate).length;
 
     return { total, validCount, invalidCount, duplicatesCount };
   }, [parsedGmails]);
@@ -180,6 +190,93 @@ export default function UserDashboard({
 
   const formatRupiah = (val: number) => {
     return 'Rp ' + val.toLocaleString('id-ID');
+  };
+
+  const handleAutoFilterAndFormat = () => {
+    if (!inputGmails.trim()) {
+      alert('Input kosong! Silakan masukkan data email terlebih dahulu.');
+      return;
+    }
+
+    const seen = new Set<string>();
+    const cleanedLines: string[] = [];
+    let removedDupes = 0;
+    let removedErrors = 0;
+
+    parsedGmails.forEach((p) => {
+      if (!p.email || !p.pass) {
+        removedErrors++;
+        return;
+      }
+
+      const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email) && p.email.toLowerCase().endsWith('gmail.com');
+      if (!isEmailValid) {
+        removedErrors++;
+        return;
+      }
+
+      const emailLower = p.email.toLowerCase();
+      if (seen.has(emailLower)) {
+        removedDupes++;
+        return;
+      }
+
+      seen.add(emailLower);
+      
+      // Standardize format as email|password
+      if (p.recovery) {
+        cleanedLines.push(`${p.email}|${p.pass}|${p.recovery}`);
+      } else {
+        cleanedLines.push(`${p.email}|${p.pass}`);
+      }
+    });
+
+    setInputGmails(cleanedLines.join('\n'));
+
+    let summaryMessage = 'Format setoran berhasil divalidasi & diperbaiki!';
+    if (removedDupes > 0 || removedErrors > 0) {
+      summaryMessage = `Selesai memproses! Berhasil menyaring ${removedDupes} duplikat dan menghapus ${removedErrors} akun bermasalah format.`;
+    }
+    alert(summaryMessage);
+  };
+
+  const handleExportTransactionsCSV = () => {
+    if (userTransactions.length === 0) {
+      alert('Tidak ada riwayat setoran untuk diekspor!');
+      return;
+    }
+    const headers = ['ID Transaksi', 'Waktu', 'Kategori Rate', 'Jumlah Akun Disetor', 'Akun Valid', 'Status', 'Metode Bayar', 'Nomer Payout', 'Catatan Admin'];
+    const rows = userTransactions.slice().reverse().map(tx => [
+      tx.id,
+      new Date(tx.timestamp).toLocaleString('id-ID'),
+      tx.categoryLabel,
+      tx.quantitySubmitted,
+      tx.quantityValid,
+      tx.status,
+      tx.paymentMethod,
+      tx.paymentAccountNumber,
+      tx.adminNotes || ''
+    ]);
+    exportToCSV(`setoran_gmail_${user.username}.csv`, headers, rows);
+  };
+
+  const handleExportWithdrawalsCSV = () => {
+    if (userWithdrawals.length === 0) {
+      alert('Tidak ada riwayat penarikan untuk diekspor!');
+      return;
+    }
+    const headers = ['ID Penarikan', 'Waktu', 'Nominal Tarik', 'Metode Transfer', 'Nomor Rekening', 'Atas Nama', 'Status', 'Catatan Admin'];
+    const rows = userWithdrawals.slice().reverse().map(wd => [
+      wd.id,
+      new Date(wd.createdAt).toLocaleString('id-ID'),
+      wd.amount,
+      wd.method,
+      wd.accountNumber,
+      wd.accountHolderName,
+      wd.status,
+      wd.adminNotes || ''
+    ]);
+    exportToCSV(`penarikan_saldo_${user.username}.csv`, headers, rows);
   };
 
   // Submission handler
@@ -466,9 +563,19 @@ export default function UserDashboard({
                     placeholder="contoh99@gmail.com|sandirahasianya&#10;contoh100@gmail.com|sandirahasianya"
                     className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500/40 rounded-xl p-4 text-xs font-mono text-slate-200 focus:outline-none placeholder:text-slate-700 leading-relaxed"
                   />
-                  <span className="block text-[10px] text-slate-500 leading-relaxed font-mono">
-                    💡 Gunakan pemisah garis tegak <strong className="text-slate-300">|</strong>, koma <strong className="text-slate-300">,</strong>, titik koma <strong className="text-slate-300">;</strong> atau spasi. Masukkan satu akun per baris.
-                  </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-[#060a0c] p-3 rounded-xl border border-slate-900/80 mt-1.5">
+                    <span className="text-[10px] text-slate-500 font-mono leading-relaxed">
+                      💡 Gunakan pemisah <strong className="text-slate-300">|</strong>, koma <strong className="text-slate-300">,</strong>, titik koma <strong className="text-slate-300">;</strong> atau spasi.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleAutoFilterAndFormat}
+                      className="bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-slate-950 border border-amber-500/20 font-black px-4 py-2 rounded-xl text-[10px] uppercase font-mono transition-all cursor-pointer shrink-0 self-end sm:self-auto"
+                      title="Saring email duplikat, abaikan format salah, dan rapikan data secara otomatis"
+                    >
+                      ⚡ Saring Duplikat & Rapikan Format
+                    </button>
+                  </div>
                 </div>
 
                 {/* Submitter Credentials detail */}
@@ -693,6 +800,15 @@ export default function UserDashboard({
                   <h3 className="text-base font-black text-slate-100 font-mono uppercase tracking-tight">STATUS PENARIKAN SALDO Anda</h3>
                   <p className="text-slate-400 text-xs mt-0.5">Riwayat penarikan saldo dari akun Anda ke bank / e-wallet.</p>
                 </div>
+                {userWithdrawals.length > 0 && (
+                  <button
+                    onClick={handleExportWithdrawalsCSV}
+                    className="flex items-center gap-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-900 hover:border-amber-500/30 text-amber-400 text-[10px] font-black uppercase px-3 py-1.5 rounded-xl font-mono transition-all cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Ekspor CSV</span>
+                  </button>
+                )}
               </div>
 
               {userWithdrawals.length === 0 ? (
@@ -748,9 +864,31 @@ export default function UserDashboard({
         {/* Tab 3: TRANSAKSI */}
         {activeTab === 'transaksi' && (
           <div className="bg-[#080d0f] border border-slate-900 rounded-2xl p-6 space-y-6 shadow-md">
-            <div className="border-b border-slate-900 pb-3">
-              <h3 className="text-base font-black text-slate-100 font-mono uppercase tracking-tight">RIWAYAT AKTIVITAS ANDA</h3>
-              <p className="text-slate-400 text-xs mt-0.5">Menampilkan seluruh data penyetoran Gmail dan penarikan dana untuk akun Anda.</p>
+            <div className="border-b border-slate-900 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h3 className="text-base font-black text-slate-100 font-mono uppercase tracking-tight">RIWAYAT AKTIVITAS ANDA</h3>
+                <p className="text-slate-400 text-xs mt-0.5">Menampilkan seluruh data penyetoran Gmail dan penarikan dana untuk akun Anda.</p>
+              </div>
+              <div className="flex flex-wrap gap-2 shrink-0">
+                {userTransactions.length > 0 && (
+                  <button
+                    onClick={handleExportTransactionsCSV}
+                    className="flex items-center gap-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-900 hover:border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase px-3 py-1.5 rounded-xl font-mono transition-all cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Ekspor Setoran</span>
+                  </button>
+                )}
+                {userWithdrawals.length > 0 && (
+                  <button
+                    onClick={handleExportWithdrawalsCSV}
+                    className="flex items-center gap-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-900 hover:border-amber-500/30 text-amber-400 text-[10px] font-black uppercase px-3 py-1.5 rounded-xl font-mono transition-all cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Ekspor Penarikan</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {userTransactions.length === 0 && userWithdrawals.length === 0 ? (

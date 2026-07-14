@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { GmailRate, AppSettings, Transaction, User, Withdrawal, Announcement } from '../types';
+import { exportToCSV } from '../utils';
 import { 
   Users, DollarSign, ClipboardList, TrendingUp, ShieldCheck, 
   Settings, AlertCircle, MessageSquare, Trash2, CheckCircle, 
   XCircle, ArrowRight, RefreshCw, Plus, Calendar, Edit, Database, Landmark, ShieldAlert,
-  Copy, Check
+  Copy, Check, FileText
 } from 'lucide-react';
 import SupabaseGuide from './SupabaseGuide';
 
@@ -146,6 +147,109 @@ export default function AdminDashboard({
     }
     return list;
   }, [users, userSearchQuery]);
+
+  const handleExportAdminTransactionsCSV = () => {
+    if (filteredTransactions.length === 0) {
+      showToast('Tidak ada data transaksi untuk diekspor!', 'error');
+      return;
+    }
+    const headers = [
+      'ID Transaksi', 
+      'Username Mitra', 
+      'WhatsApp', 
+      'Waktu Setor', 
+      'Kategori', 
+      'Akun Disetor', 
+      'Akun Valid', 
+      'Total Payout', 
+      'Status', 
+      'Metode Payout', 
+      'Rekening Payout', 
+      'Atas Nama Payout',
+      'Catatan Admin',
+      'Raw Data Akun'
+    ];
+    const rows = filteredTransactions.map(tx => [
+      tx.id,
+      tx.userUsername,
+      tx.whatsapp,
+      new Date(tx.timestamp).toLocaleString('id-ID'),
+      tx.categoryLabel,
+      tx.quantitySubmitted,
+      tx.quantityValid,
+      tx.totalPayout,
+      tx.status,
+      tx.paymentMethod,
+      tx.paymentAccountNumber,
+      tx.paymentAccountHolderName,
+      tx.adminNotes || '',
+      tx.rawGmails
+    ]);
+    exportToCSV(`rekap_setoran_gmail_admin.csv`, headers, rows);
+    showToast('Data transaksi berhasil diekspor ke CSV!', 'success');
+  };
+
+  const handleExportAdminWithdrawalsCSV = () => {
+    if (filteredWithdrawals.length === 0) {
+      showToast('Tidak ada data penarikan untuk diekspor!', 'error');
+      return;
+    }
+    const headers = [
+      'ID Penarikan', 
+      'Username Mitra', 
+      'Waktu Pengajuan', 
+      'Nominal Tarik', 
+      'Metode Transfer', 
+      'Nomor Rekening', 
+      'Atas Nama', 
+      'Status', 
+      'Catatan Admin'
+    ];
+    const rows = filteredWithdrawals.map(wd => [
+      wd.id,
+      wd.userUsername,
+      new Date(wd.createdAt).toLocaleString('id-ID'),
+      wd.amount,
+      wd.method,
+      wd.accountNumber,
+      wd.accountName,
+      wd.status,
+      wd.adminNotes || ''
+    ]);
+    exportToCSV(`rekap_penarikan_saldo_admin.csv`, headers, rows);
+    showToast('Data penarikan berhasil diekspor ke CSV!', 'success');
+  };
+
+  const handleExportAdminUsersCSV = () => {
+    if (filteredUsers.length === 0) {
+      showToast('Tidak ada data mitra untuk diekspor!', 'error');
+      return;
+    }
+    const headers = [
+      'ID User', 
+      'Username', 
+      'Email', 
+      'WhatsApp', 
+      'Saldo Saat Ini', 
+      'Bank/E-Wallet', 
+      'Nomor Rekening', 
+      'Atas Nama Rekening', 
+      'Tanggal Join'
+    ];
+    const rows = filteredUsers.map(u => [
+      u.id,
+      u.username,
+      u.email,
+      u.whatsapp,
+      u.balance,
+      u.bankName,
+      u.bankNumber,
+      u.bankHolderName,
+      new Date(u.createdAt).toLocaleString('id-ID')
+    ]);
+    exportToCSV(`daftar_mitra_juragan_gmail.csv`, headers, rows);
+    showToast('Daftar mitra berhasil diekspor ke CSV!', 'success');
+  };
 
   // 1. ANNOUNCEMENT ACTIONS
   const handleCreateAnnouncement = (e: React.FormEvent) => {
@@ -646,23 +750,36 @@ export default function AdminDashboard({
                       <p className="text-slate-400 text-xs mt-0.5">Daftar setoran Gmail dari mitra yang menunggu verifikasi keabsahan data.</p>
                     </div>
                     
-                    {/* Search Bar */}
-                    <div className="relative max-w-xs w-full">
-                      <input
-                        type="text"
-                        value={txSearchQuery}
-                        onChange={(e) => setTxSearchQuery(e.target.value)}
-                        placeholder="Cari WA / ID Setoran..."
-                        className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500/50 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                      />
-                      {txSearchQuery && (
+                    <div className="flex items-center gap-2.5 max-w-sm w-full sm:w-auto shrink-0">
+                      {filteredTransactions.length > 0 && (
                         <button
-                          onClick={() => setTxSearchQuery('')}
-                          className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-mono font-bold"
+                          onClick={handleExportAdminTransactionsCSV}
+                          className="flex items-center gap-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-900 hover:border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase px-3 py-2 rounded-xl font-mono transition-all cursor-pointer whitespace-nowrap"
+                          title="Ekspor seluruh setoran dalam antrian ini ke file CSV"
                         >
-                          ✕
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Ekspor CSV</span>
                         </button>
                       )}
+
+                      {/* Search Bar */}
+                      <div className="relative w-full sm:w-48">
+                        <input
+                          type="text"
+                          value={txSearchQuery}
+                          onChange={(e) => setTxSearchQuery(e.target.value)}
+                          placeholder="Cari WA/ID..."
+                          className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500/50 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                        />
+                        {txSearchQuery && (
+                          <button
+                            onClick={() => setTxSearchQuery('')}
+                            className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-mono font-bold"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -893,24 +1010,37 @@ export default function AdminDashboard({
                       <h3 className="text-base font-black text-slate-100 font-mono uppercase tracking-tight">KONFIRMASI PENARIKAN SALDO MITRA</h3>
                       <p className="text-slate-400 text-xs mt-0.5">Proses permohonan penarikan saldo dan transfer dana ke rekening e-wallet/bank mitra Anda.</p>
                     </div>
-
-                    {/* Search Bar */}
-                    <div className="relative max-w-xs w-full">
-                      <input
-                        type="text"
-                        value={wdSearchQuery}
-                        onChange={(e) => setWdSearchQuery(e.target.value)}
-                        placeholder="Cari Username/Rekening/Nama..."
-                        className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500/50 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                      />
-                      {wdSearchQuery && (
+ 
+                    <div className="flex items-center gap-2.5 max-w-sm w-full sm:w-auto shrink-0">
+                      {filteredWithdrawals.length > 0 && (
                         <button
-                          onClick={() => setWdSearchQuery('')}
-                          className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-mono font-bold"
+                          onClick={handleExportAdminWithdrawalsCSV}
+                          className="flex items-center gap-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-900 hover:border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase px-3 py-2 rounded-xl font-mono transition-all cursor-pointer whitespace-nowrap"
+                          title="Ekspor daftar penarikan saldo ini ke file CSV"
                         >
-                          ✕
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Ekspor CSV</span>
                         </button>
                       )}
+
+                      {/* Search Bar */}
+                      <div className="relative w-full sm:w-48">
+                        <input
+                          type="text"
+                          value={wdSearchQuery}
+                          onChange={(e) => setWdSearchQuery(e.target.value)}
+                          placeholder="Cari Username/Rek..."
+                          className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500/50 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                        />
+                        {wdSearchQuery && (
+                          <button
+                            onClick={() => setWdSearchQuery('')}
+                            className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-mono font-bold"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1095,23 +1225,36 @@ export default function AdminDashboard({
                   <p className="text-slate-400 text-xs mt-0.5">Daftar lengkap seluruh mitra yang memiliki akun di Juragan Gmail.</p>
                 </div>
 
-                {/* User Search Bar */}
-                <div className="relative max-w-xs w-full">
-                  <input
-                    type="text"
-                    value={userSearchQuery}
-                    onChange={(e) => setUserSearchQuery(e.target.value)}
-                    placeholder="Cari Username/WA/ID..."
-                    className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500/50 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                  />
-                  {userSearchQuery && (
+                <div className="flex items-center gap-2.5 max-w-sm w-full sm:w-auto shrink-0">
+                  {filteredUsers.length > 0 && (
                     <button
-                      onClick={() => setUserSearchQuery('')}
-                      className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-mono font-bold"
+                      onClick={handleExportAdminUsersCSV}
+                      className="flex items-center gap-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-900 hover:border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase px-3 py-2 rounded-xl font-mono transition-all cursor-pointer whitespace-nowrap"
+                      title="Ekspor daftar mitra terdaftar ke file CSV"
                     >
-                      ✕
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Ekspor CSV</span>
                     </button>
                   )}
+
+                  {/* User Search Bar */}
+                  <div className="relative w-full sm:w-48">
+                    <input
+                      type="text"
+                      value={userSearchQuery}
+                      onChange={(e) => setUserSearchQuery(e.target.value)}
+                      placeholder="Cari Username/WA..."
+                      className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500/50 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                    />
+                    {userSearchQuery && (
+                      <button
+                        onClick={() => setUserSearchQuery('')}
+                        className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-mono font-bold"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
