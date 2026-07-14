@@ -1,0 +1,6 @@
+{
+  "name": "Juragan Gmail",
+  "description": "Platform setor dan jual akun Gmail terpercaya dengan rate tinggi, proses cepat, dan pembayaran instan ke E-Wallet & Bank.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
