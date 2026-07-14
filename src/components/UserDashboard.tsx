@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { User, Transaction, Withdrawal, Announcement, GmailRate } from '../types';
 import { 
   Plus, Check, Copy, Trash2, ClipboardList, TrendingUp, AlertCircle, 
@@ -40,7 +40,8 @@ export default function UserDashboard({
   
   // Setor Form States
   const [inputGmails, setInputGmails] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('fresh');
+  const [selectedCategory, setSelectedCategory] = useState('tier_1');
+  const [selectedGenPassword, setSelectedGenPassword] = useState('aass1122');
   const [whatsapp, setWhatsapp] = useState(user.whatsapp);
   const [paymentMethod, setPaymentMethod] = useState(user.bankName);
   const [paymentAccountName, setPaymentAccountName] = useState(user.bankHolderName);
@@ -80,20 +81,18 @@ export default function UserDashboard({
 
       const email = parts[0]?.trim() || '';
       const pass = parts[1]?.trim() || '';
-      const recovery = parts[2]?.trim() || '';
+      const recovery = parts[2]?.trim() || ''; // optional, typically empty according to rules
 
       // Simple validation checks
       const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.toLowerCase().endsWith('gmail.com');
       const hasPass = pass.length > 0;
-      const isRecoveryValid = recovery.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recovery);
       
-      const isValid = isEmailValid && hasPass && isRecoveryValid;
+      // According to Juragan Gmail rules: Email & No. Pemulihan: Wajib KOSONG
+      const isValid = isEmailValid && hasPass;
       let error = '';
       if (!email) error = 'Email kosong';
       else if (!isEmailValid) error = 'Format Gmail tidak valid';
       else if (!hasPass) error = 'Password kosong';
-      else if (!recovery) error = 'Email pemulihan kosong';
-      else if (!isRecoveryValid) error = 'Format pemulihan tidak valid';
 
       return {
         lineIndex: idx + 1,
@@ -127,6 +126,22 @@ export default function UserDashboard({
     return { total, validCount, invalidCount, duplicatesCount };
   }, [parsedGmails]);
 
+  // Auto-select rate tier based on number of valid accounts inputted
+  useEffect(() => {
+    const count = parsedStats.validCount;
+    if (count > 0) {
+      if (count <= 20) {
+        setSelectedCategory('tier_1');
+      } else if (count <= 50) {
+        setSelectedCategory('tier_2');
+      } else if (count <= 300) {
+        setSelectedCategory('tier_3');
+      } else {
+        setSelectedCategory('tier_4');
+      }
+    }
+  }, [parsedStats.validCount]);
+
   const currentRateObj = useMemo(() => {
     return rates.find(r => r.key === selectedCategory) || rates[0];
   }, [rates, selectedCategory]);
@@ -143,6 +158,25 @@ export default function UserDashboard({
   const userWithdrawals = useMemo(() => {
     return withdrawals.filter(wd => wd.userId === user.id);
   }, [withdrawals, user.id]);
+
+  const userGmailStats = useMemo(() => {
+    let pending = 0;
+    let valid = 0;
+    let error = 0;
+
+    userTransactions.forEach(tx => {
+      if (tx.status === 'checking' || tx.status === 'pending') {
+        pending += tx.quantitySubmitted;
+      } else if (tx.status === 'completed') {
+        valid += tx.quantityValid;
+        error += Math.max(0, tx.quantitySubmitted - tx.quantityValid);
+      } else if (tx.status === 'rejected') {
+        error += tx.quantitySubmitted;
+      }
+    });
+
+    return { pending, valid, error };
+  }, [userTransactions]);
 
   const formatRupiah = (val: number) => {
     return 'Rp ' + val.toLocaleString('id-ID');
@@ -188,8 +222,8 @@ export default function UserDashboard({
       return;
     }
 
-    if (amt < 20000) {
-      setWdError('Batas minimal penarikan saldo adalah Rp 20.000!');
+    if (amt < 5000) {
+      setWdError('Batas minimal penarikan saldo adalah Rp 5.000!');
       return;
     }
 
@@ -210,9 +244,35 @@ export default function UserDashboard({
 
   // Copy Template helper
   const handleCopyTemplate = () => {
-    const template = `alamatemail1@gmail.com|katasandi123|emailpemulihan1@${recommendedRecoveryDomain}\nalamatemail2@gmail.com|katasandi123|emailpemulihan2@${recommendedRecoveryDomain}`;
+    const template = `alamatemail1@gmail.com|katasandi123\nalamatemail2@gmail.com|katasandi123`;
     navigator.clipboard.writeText(template);
     alert('Format template berhasil disalin ke clipboard!');
+  };
+
+  // Generate random email helper complying with Indonesian names, 1990-2005 birth year, and required passwords
+  const handleGenerateEmails = (count: number) => {
+    const firstNames = ['budi', 'irfan', 'dwi', 'agus', 'rudi', 'dewi', 'siti', 'eko', 'andi', 'sari', 'putra', 'mega', 'reza', 'tri', 'ari', 'wawan', 'yudi', 'gita', 'lia', 'fajar', 'hendra', 'roni', 'nana', 'desi', 'rina', 'bagus', 'dimas', 'bayu', 'adit', 'nanda'];
+    const lastNames = ['santoso', 'wijaya', 'saputra', 'lestari', 'hidayat', 'pratama', 'kusuma', 'setiawan', 'gunawan', 'wibowo', 'susanto', 'permana', 'nasution', 'ramadhan', 'putri', 'anwar', 'maulana', 'hadi', 'fitri', 'kartika', 'utami', 'nugroho', 'cahyono', 'subagyo', 'arifin'];
+    const passwords = ['aass1122', 'sgsg1122', 'fineirga', 'prabujaya'];
+
+    const generated: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const fName = firstNames[Math.floor(Math.random() * firstNames.length)];
+      const lName = lastNames[Math.floor(Math.random() * lastNames.length)];
+      const year = Math.floor(Math.random() * (2005 - 1990 + 1)) + 1990;
+      const numSuffix = Math.floor(Math.random() * 900) + 100; // 3-digit random
+      
+      const email = `${fName}${lName}${year % 100}${numSuffix}@gmail.com`;
+      
+      let pass = selectedGenPassword;
+      if (pass === 'random') {
+        pass = passwords[Math.floor(Math.random() * passwords.length)];
+      }
+      
+      generated.push(`${email}|${pass}`);
+    }
+
+    setInputGmails(generated.join('\n'));
   };
 
   return (
@@ -329,34 +389,66 @@ export default function UserDashboard({
 
               <form onSubmit={handleSetorSubmit} className="space-y-4">
                 
-                {/* Category Selection */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-mono">Pilih Kategori Gmail</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {rates.map((r) => (
-                      <div
-                        key={r.key}
-                        onClick={() => setSelectedCategory(r.key)}
-                        className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                          selectedCategory === r.key
-                            ? 'border-emerald-500/40 bg-emerald-950/10'
-                            : 'border-slate-900 hover:border-slate-800 bg-[#05080a]'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-extrabold text-slate-200">{r.label}</span>
-                          {selectedCategory === r.key && <CheckCircle className="w-4 h-4 text-emerald-400" />}
-                        </div>
-                        <span className="block text-[11px] font-mono text-emerald-400 font-bold mt-1">Rp {r.price.toLocaleString('id-ID')} / Akun</span>
-                      </div>
-                    ))}
+                {/* Email Generator Helper */}
+                <div className="bg-[#05080a] border border-slate-900 rounded-xl p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <span className="text-emerald-400 text-[9px] font-black font-mono uppercase tracking-wider block">AUTO GENERATOR</span>
+                      <h4 className="text-xs font-black text-slate-100 font-mono uppercase tracking-tight flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>GENERATE EMAIL BULK</span>
+                      </h4>
+                    </div>
+                    <span className="text-[10px] text-emerald-500 font-mono font-bold">100% Sesuai Rules</span>
+                  </div>
+
+                  <p className="text-slate-400 text-[11px] leading-relaxed">
+                    Gunakan alat bantu generator format ini untuk mempermudah penulisan data setor Anda. Anda bisa memilih password default yang diinginkan di bawah ini.
+                  </p>
+
+                  {/* Password Selection Option */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Pilih Password Setoran (Sesuai Rules):</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+                      {['aass1122', 'sgsg1122', 'fineirga', 'prabujaya', 'random'].map((pw) => (
+                        <button
+                          key={pw}
+                          type="button"
+                          onClick={() => setSelectedGenPassword(pw)}
+                          className={`px-2 py-1.5 rounded-lg border text-[10px] font-mono transition-all font-bold cursor-pointer text-center ${
+                            selectedGenPassword === pw
+                              ? 'border-emerald-500 bg-emerald-950/20 text-emerald-400 font-black'
+                              : 'border-slate-900 bg-slate-950 hover:border-slate-800 text-slate-400'
+                          }`}
+                        >
+                          {pw === 'random' ? 'Acak' : pw}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Count Buttons */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Jumlah Akun yang Dihasilkan:</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[5, 20, 50, 100].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => handleGenerateEmails(num)}
+                          className="bg-slate-950 hover:bg-slate-900 border border-slate-900 hover:border-emerald-500/30 text-slate-300 hover:text-emerald-400 py-2 rounded-lg text-[11px] font-mono font-black transition-all cursor-pointer"
+                        >
+                          +{num} Akun
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 {/* Text Area */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-[10px] font-bold font-mono">
-                    <label className="text-slate-500 uppercase tracking-wider">Daftar Akun Gmail (Format: Email|Sandi|Pemulihan)</label>
+                    <label className="text-slate-500 uppercase tracking-wider">Daftar Akun Gmail (Format: Email|Sandi)</label>
                     <button
                       type="button"
                       onClick={handleCopyTemplate}
@@ -371,7 +463,7 @@ export default function UserDashboard({
                     rows={7}
                     value={inputGmails}
                     onChange={(e) => setInputGmails(e.target.value)}
-                    placeholder={`contoh99@gmail.com|sandirahasianya|recovery99@${recommendedRecoveryDomain}\ncontoh100@gmail.com|sandirahasianya|recovery100@${recommendedRecoveryDomain}`}
+                    placeholder="contoh99@gmail.com|sandirahasianya&#10;contoh100@gmail.com|sandirahasianya"
                     className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500/40 rounded-xl p-4 text-xs font-mono text-slate-200 focus:outline-none placeholder:text-slate-700 leading-relaxed"
                   />
                   <span className="block text-[10px] text-slate-500 leading-relaxed font-mono">
@@ -422,54 +514,60 @@ export default function UserDashboard({
             {/* Parsing Side Stats Column */}
             <div className="lg:col-span-5 space-y-6">
               
-              {/* Parse Summary Widget */}
-              <div className="bg-[#080d0f] border border-slate-900 rounded-2xl p-5 space-y-4 shadow-md">
-                <span className="text-[10px] font-bold font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full uppercase">REAL-TIME INSPECTOR</span>
+              {/* Status Akun & Inspector Widget */}
+              <div className="bg-[#080d0f] border border-slate-900 rounded-2xl p-5 space-y-5 shadow-md">
                 
-                <h4 className="text-xs font-bold text-slate-200 font-mono uppercase tracking-tight">ANALISIS VALIDASI AKUN</h4>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-950/50 border border-slate-900 p-3 rounded-xl text-center">
-                    <span className="text-[10px] text-slate-500 font-mono block">TOTAL BARIS</span>
-                    <strong className="text-xl font-mono text-slate-200">{parsedStats.total}</strong>
+                {/* Header for User's Global Gmail Stats */}
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase">RINGKASAN STATUS AKUN</span>
+                  <h4 className="text-xs font-bold text-slate-200 font-mono uppercase tracking-tight">DATA SELURUH SETORAN GMAIL</h4>
+                </div>
+
+                {/* 3 Columns: Pending, Valid, Error */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-slate-950/55 border border-slate-900/60 p-2.5 rounded-xl text-center flex flex-col justify-between h-20">
+                    <span className="text-[9px] text-amber-500 font-bold font-mono uppercase tracking-wider block">PENDING</span>
+                    <strong className="text-base font-black font-mono text-amber-400 block mt-1">{userGmailStats.pending} <span className="text-[9px] font-normal text-slate-500">pcs</span></strong>
                   </div>
-                  <div className="bg-slate-950/50 border border-slate-900 p-3 rounded-xl text-center">
-                    <span className="text-[10px] text-emerald-500 font-mono block">FORMAT VALID</span>
-                    <strong className="text-xl font-mono text-emerald-400">{parsedStats.validCount}</strong>
+                  <div className="bg-slate-950/55 border border-slate-900/60 p-2.5 rounded-xl text-center flex flex-col justify-between h-20">
+                    <span className="text-[9px] text-emerald-400 font-bold font-mono uppercase tracking-wider block">VALID</span>
+                    <strong className="text-base font-black font-mono text-emerald-400 block mt-1">{userGmailStats.valid} <span className="text-[9px] font-normal text-slate-500">pcs</span></strong>
                   </div>
-                  <div className="bg-slate-950/50 border border-slate-900 p-3 rounded-xl text-center">
-                    <span className="text-[10px] text-rose-500 font-mono block">FORMAT ERROR</span>
-                    <strong className="text-xl font-mono text-rose-400">{parsedStats.invalidCount}</strong>
-                  </div>
-                  <div className="bg-slate-950/50 border border-slate-900 p-3 rounded-xl text-center">
-                    <span className="text-[10px] text-amber-500 font-mono block">DUPLIKAT</span>
-                    <strong className="text-xl font-mono text-amber-400">{parsedStats.duplicatesCount}</strong>
+                  <div className="bg-slate-950/55 border border-slate-900/60 p-2.5 rounded-xl text-center flex flex-col justify-between h-20">
+                    <span className="text-[9px] text-rose-500 font-bold font-mono uppercase tracking-wider block">ERROR</span>
+                    <strong className="text-base font-black font-mono text-rose-400 block mt-1">{userGmailStats.error} <span className="text-[9px] font-normal text-slate-500">pcs</span></strong>
                   </div>
                 </div>
 
-                <div className="border-t border-slate-900 pt-3 flex justify-between items-center text-xs font-mono">
-                  <span className="text-slate-400">Estimasi Pendapatan:</span>
-                  <strong className="text-emerald-400 text-sm font-black">{formatRupiah(estimatedPayout)}</strong>
-                </div>
-              </div>
-
-              {/* Requirement Checklist */}
-              <div className="bg-[#080d0f] border border-slate-900 rounded-2xl p-5 space-y-3.5 shadow-md text-xs">
-                <h4 className="text-xs font-bold text-slate-200 font-mono uppercase tracking-tight flex items-center gap-1.5">
-                  <ShieldAlert className="w-4 h-4 text-amber-400" />
-                  <span>KETENTUAN KATEGORI INI</span>
-                </h4>
-                <p className="text-slate-400 text-[11px] leading-relaxed">
-                  Harap pastikan semua akun diset sesuai panduan berikut sebelum menekan tombol setor:
-                </p>
-                <div className="space-y-2">
-                  {currentRateObj.requirements.map((req, idx) => (
-                    <div key={idx} className="flex items-start space-x-2 text-slate-300 text-[11px]">
-                      <span className="text-emerald-400 font-bold shrink-0 mt-0.5 font-mono">✔</span>
-                      <span>{req}</span>
+                {/* Input Inspector Live Feed */}
+                {inputGmails.trim() && (
+                  <div className="border-t border-slate-900 pt-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-black font-mono text-slate-500 uppercase tracking-wider">LIVE INPUT PARSER</span>
+                      <span className="text-[9px] font-mono text-emerald-400 animate-pulse">● AKTIF</span>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                      <div className="flex justify-between items-center bg-slate-950/30 px-2.5 py-1.5 rounded border border-slate-900">
+                        <span className="text-slate-500 text-[10px]">BARIS:</span>
+                        <span className="text-slate-300 font-bold">{parsedStats.total}</span>
+                      </div>
+                      <div className="flex justify-between items-center bg-slate-950/30 px-2.5 py-1.5 rounded border border-slate-900">
+                        <span className="text-emerald-500 text-[10px]">VALID:</span>
+                        <span className="text-emerald-400 font-bold">{parsedStats.validCount}</span>
+                      </div>
+                      <div className="flex justify-between items-center bg-slate-950/30 px-2.5 py-1.5 rounded border border-slate-900 col-span-2">
+                        <span className="text-rose-500 text-[10px]">FORMAT ERROR / DUPLIKAT:</span>
+                        <span className="text-rose-400 font-bold">{parsedStats.invalidCount + parsedStats.duplicatesCount}</span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-900/50 pt-3 flex justify-between items-center text-xs font-mono">
+                      <span className="text-slate-400">Estimasi Pendapatan:</span>
+                      <strong className="text-emerald-400 text-sm font-black">{formatRupiah(estimatedPayout)}</strong>
+                    </div>
+                  </div>
+                )}
               </div>
 
             </div>
@@ -512,7 +610,7 @@ export default function UserDashboard({
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-500 font-mono block">MINIMAL PENARIKAN</span>
-                    <strong className="text-slate-400 font-mono font-bold text-xs">Rp 20.000</strong>
+                    <strong className="text-slate-400 font-mono font-bold text-xs">Rp 5.000</strong>
                   </div>
                 </div>
 
@@ -526,7 +624,7 @@ export default function UserDashboard({
                       required
                       value={wdAmount}
                       onChange={(e) => setWdAmount(parseInt(e.target.value) || '')}
-                      placeholder="Minimal 20000"
+                      placeholder="Minimal 5000"
                       className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500/40 rounded-xl py-3 pl-9 pr-4 text-xs font-mono font-bold text-amber-400 focus:outline-none"
                     />
                   </div>

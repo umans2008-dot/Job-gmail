@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crown, ArrowRight, CheckCircle2, DollarSign, TrendingUp, ShieldCheck, Zap, Coins, Users, HelpCircle, BookOpen } from 'lucide-react';
+import { Crown, ArrowRight, CheckCircle2, DollarSign, TrendingUp, ShieldCheck, Zap, Coins, Users, HelpCircle, BookOpen, MessageSquare, ExternalLink } from 'lucide-react';
 import { GmailRate } from '../types';
 
 interface LandingPageProps {
@@ -156,7 +156,7 @@ export default function LandingPage({ rates, onStart, onViewRates, totalWithdraw
             <span>Ingin Mempelajari Cara Pembuatan & Penyetoran?</span>
           </h3>
           <p className="text-slate-400 text-xs leading-relaxed">
-            Kami menyediakan panduan lengkap, tips agar akun awet (anti-disabled), panduan cara mengisi email pemulihan (recovery) massal, hingga format teks setor. Klik tombol panduan untuk membaca selengkapnya.
+            Kami menyediakan panduan lengkap, tips agar akun awet (anti-disabled), panduan cara pengisian akun, hingga format teks setor. Klik tombol panduan untuk membaca selengkapnya.
           </p>
         </div>
         <button
@@ -165,6 +165,71 @@ export default function LandingPage({ rates, onStart, onViewRates, totalWithdraw
         >
           Pelajari Panduan Lengkap
         </button>
+      </div>
+
+      {/* Official Admins & Channel */}
+      <div className="space-y-6 pt-6 border-t border-slate-900/60" id="official-contacts">
+        <div className="text-center md:text-left space-y-1">
+          <span className="text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase">LAYANAN KONSULTASI</span>
+          <h2 className="text-2xl font-black text-slate-100 font-mono tracking-tight uppercase">KONTAK UTAMA JURAGAN GMAIL</h2>
+          <p className="text-slate-400 text-xs max-w-xl">Hanya hubungi nomor resmi di bawah ini untuk konsultasi, bantuan penarikan saldo, atau rate khusus supplier besar.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Admin 1 */}
+          <div className="bg-[#080d0f] border border-slate-900 rounded-2xl p-5 space-y-4 flex flex-col justify-between hover:border-slate-800 transition-all shadow-md relative">
+            <div className="space-y-1">
+              <span className="text-amber-400 text-[10px] font-bold font-mono uppercase tracking-wider block">SUPPORT ADMIN 1</span>
+              <h3 className="text-base font-black text-slate-100 font-mono">BOS IRGA (ADMIN 1)</h3>
+              <p className="text-slate-400 text-[11px]">Melayani transaksi, cek setoran akun, negosiasi rate kuantitas besar, dan keluhan teknis.</p>
+            </div>
+            <a
+              href="https://wa.me/6283867031565?text=Halo%20Admin%201%20Juragan%20Gmail,%20saya%20ingin%20bertanya%20mengenai%20setoran%20akun..."
+              target="_blank"
+              referrerPolicy="no-referrer"
+              className="w-full bg-slate-900 hover:bg-slate-850 text-emerald-400 border border-slate-800 hover:border-emerald-500/20 py-2.5 rounded-xl text-xs font-bold font-mono flex items-center justify-center gap-1.5 transition-all"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Hubungi +62 838-6703-1565</span>
+            </a>
+          </div>
+
+          {/* Admin 2 */}
+          <div className="bg-[#080d0f] border border-slate-900 rounded-2xl p-5 space-y-4 flex flex-col justify-between hover:border-slate-800 transition-all shadow-md relative">
+            <div className="space-y-1">
+              <span className="text-amber-400 text-[10px] font-bold font-mono uppercase tracking-wider block">SUPPORT ADMIN 2</span>
+              <h3 className="text-base font-black text-slate-100 font-mono">BOS PRABU (ADMIN 2)</h3>
+              <p className="text-slate-400 text-[11px]">Melayani transaksi, cek setoran akun, proses pencairan saldo tercepat, dan pendaftaran mitra.</p>
+            </div>
+            <a
+              href="https://wa.me/6285716766584?text=Halo%20Admin%202%20Juragan%20Gmail,%20saya%20ingin%20bertanya%20mengenai%20setoran%20akun..."
+              target="_blank"
+              referrerPolicy="no-referrer"
+              className="w-full bg-slate-900 hover:bg-slate-850 text-emerald-400 border border-slate-800 hover:border-emerald-500/20 py-2.5 rounded-xl text-xs font-bold font-mono flex items-center justify-center gap-1.5 transition-all"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Hubungi +62 857-1676-6584</span>
+            </a>
+          </div>
+
+          {/* WA Channel */}
+          <div className="bg-gradient-to-br from-[#080d0f] to-[#04080a] border border-emerald-500/20 rounded-2xl p-5 space-y-4 flex flex-col justify-between hover:border-emerald-500/30 transition-all shadow-md relative">
+            <div className="space-y-1">
+              <span className="text-emerald-400 text-[10px] font-bold font-mono uppercase tracking-wider block">OFFICIAL CHANNEL</span>
+              <h3 className="text-base font-black text-slate-100 font-mono">CHANNEL WHATSAPP</h3>
+              <p className="text-slate-400 text-[11px]">Dapatkan info terupdate mengenai kenaikan rate beli Gmail, jam kerja, tips, dan kuota harian beli admin.</p>
+            </div>
+            <a
+              href="https://whatsapp.com/channel/0029Vb8VtFzDeONEEfhW8J1D"
+              target="_blank"
+              referrerPolicy="no-referrer"
+              className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 py-2.5 rounded-xl text-xs font-black font-mono flex items-center justify-center gap-1.5 transition-all shadow-lg"
+            >
+              <span>Join Channel Sekarang</span>
+              <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );

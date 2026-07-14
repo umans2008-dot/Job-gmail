@@ -36,7 +36,8 @@ export interface GmailRate {
 
 export interface AppSettings {
   adminPin: string;
-  whatsappAdmin: string; // e.g. 628123456789
+  whatsappAdmin: string; // e.g. 628123456789 (Admin 1)
+  whatsappAdmin2: string; // e.g. 6285716766584 (Admin 2)
   recommendedRecoveryDomain: string;
 }
 

@@ -34,10 +34,10 @@ CREATE TABLE IF NOT EXISTS public.gmail_rates (
 
 -- Seeding Rate Awal
 INSERT INTO public.gmail_rates (key, label, price, description, requirements) VALUES
-('fresh', 'Gmail Fresh (Baru Dibuat)', 1800, 'Akun baru dibuat dengan IP Indonesia bersih, wajib verifikasi email pemulihan.', ARRAY['Umur 0-7 hari', 'Sudah diisi Email Pemulihan (Recovery)', 'Tanpa Verifikasi 2 Langkah (2FA)', 'Hapus nomor HP setelah verifikasi']),
-('aged_1m', 'Gmail Aged (1 - 3 Bulan)', 3200, 'Akun berumur 1 hingga 3 bulan, memiliki riwayat aktivitas ringan.', ARRAY['Umur 30-90 hari', 'Wajib Email Pemulihan aktif', 'Tidak ada riwayat spam/banned', 'Bisa login langsung tanpa OTP HP']),
-('aged_6m', 'Gmail Aged Tua (6+ Bulan)', 4800, 'Akun berumur lebih dari 6 bulan, sangat stabil.', ARRAY['Umur 180+ hari', 'Email pemulihan aktif dan terhubung', 'Hapus nomor HP verifikasi', 'Bebas dari spam/banned']),
-('play_console', 'Gmail Google Play Console', 450000, 'Akun Gmail yang sudah terdaftar developer Google Play Console aktif.', ARRAY['Akun Developer Google Play Console aktif', 'Sertakan email pemulihan', 'Tidak ada pinalti/banned'])
+('tier_1', 'Tier 1 (1 - 20 Akun)', 2200, 'Rate progresif untuk setoran 1 s/d 20 akun sekaligus.', ARRAY['Nama manusia asli', 'Tahun lahir 1990 - 2005', 'Password wajib seragam', 'Email & No. Pemulihan KOSONG']),
+('tier_2', 'Tier 2 (21 - 50 Akun)', 3200, 'Rate progresif untuk setoran 21 s/d 50 akun sekaligus.', ARRAY['Nama manusia asli', 'Tahun lahir 1990 - 2005', 'Password wajib seragam', 'Email & No. Pemulihan KOSONG']),
+('tier_3', 'Tier 3 (51 - 300 Akun)', 4200, 'Rate progresif untuk setoran 51 s/d 300 akun sekaligus.', ARRAY['Nama manusia asli', 'Tahun lahir 1990 - 2005', 'Password wajib seragam', 'Email & No. Pemulihan KOSONG']),
+('tier_4', 'Tier 4 (300+ Akun)', 5200, 'Rate progresif untuk setoran lebih dari 300 akun sekaligus.', ARRAY['Nama manusia asli', 'Tahun lahir 1990 - 2005', 'Password wajib seragam', 'Email & No. Pemulihan KOSONG'])
 ON CONFLICT (key) DO UPDATE SET 
     price = EXCLUDED.price, 
     description = EXCLUDED.description,

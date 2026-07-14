@@ -2,62 +2,61 @@ import { GmailRate, AppSettings, Transaction, User, Withdrawal, Announcement } f
 
 export const DEFAULT_RATES: GmailRate[] = [
   {
-    key: 'fresh',
-    label: 'Gmail Fresh (Baru Dibuat)',
-    price: 1800,
-    description: 'Akun baru dibuat dengan IP Indonesia bersih, wajib verifikasi email pemulihan.',
+    key: 'tier_1',
+    label: '1 - 20 Akun',
+    price: 2200,
+    description: 'Rate dasar jika menyetor sebanyak 1 hingga 20 akun Gmail.',
     requirements: [
-      'Umur 0-7 hari',
-      'Sudah diisi Email Pemulihan (Recovery)',
-      'Tanpa Verifikasi 2 Langkah (2FA)',
-      'Hapus nomor HP setelah verifikasi',
-      'Bahasa akun diset ke English'
+      'Nama: Wajib nama manusia asli (bukan bot/huruf acak).',
+      'Tahun Lahir: Rentang tahun 1990 - 2005.',
+      'Password Wajib: aass1122 / sgsg1122 / fineirga / prabujaya',
+      'Email & No. Pemulihan: Wajib KOSONG.'
     ]
   },
   {
-    key: 'aged_1m',
-    label: 'Gmail Aged (1 - 3 Bulan)',
+    key: 'tier_2',
+    label: '21 - 50 Akun',
     price: 3200,
-    description: 'Akun berumur 1 hingga 3 bulan, memiliki riwayat aktivitas ringan lebih disukai.',
+    description: 'Rate meningkat jika menyetor sebanyak 21 hingga 50 akun Gmail.',
     requirements: [
-      'Umur 30-90 hari',
-      'Wajib Email Pemulihan aktif',
-      'Tidak ada riwayat spam/banned',
-      'Bisa login langsung tanpa OTP HP',
-      'IP pembuatan Indonesia'
+      'Nama: Wajib nama manusia asli (bukan bot/huruf acak).',
+      'Tahun Lahir: Rentang tahun 1990 - 2005.',
+      'Password Wajib: aass1122 / sgsg1122 / fineirga / prabujaya',
+      'Email & No. Pemulihan: Wajib KOSONG.'
     ]
   },
   {
-    key: 'aged_6m',
-    label: 'Gmail Aged Tua (6+ Bulan)',
-    price: 4800,
-    description: 'Akun berumur lebih dari 6 bulan, sangat stabil dan aman untuk pendaftaran.',
+    key: 'tier_3',
+    label: '51 - 300 Akun',
+    price: 4200,
+    description: 'Rate premium jika menyetor sebanyak 51 hingga 300 akun Gmail.',
     requirements: [
-      'Umur 180+ hari',
-      'Email pemulihan aktif dan terhubung',
-      'Hapus nomor HP verifikasi',
-      'Bebas dari spam/banned',
-      'Sandi aman dan permanen'
+      'Nama: Wajib nama manusia asli (bukan bot/huruf acak).',
+      'Tahun Lahir: Rentang tahun 1990 - 2005.',
+      'Password Wajib: aass1122 / sgsg1122 / fineirga / prabujaya',
+      'Email & No. Pemulihan: Wajib KOSONG.'
     ]
   },
   {
-    key: 'play_console',
-    label: 'Gmail Google Play Console',
-    price: 450000,
-    description: 'Akun Gmail yang sudah terdaftar developer Google Play Console aktif dan bersih.',
+    key: 'tier_4',
+    label: '300+ Akun',
+    price: 5200,
+    description: 'Rate tertinggi jika menyetor lebih dari 300 akun Gmail sekaligus.',
     requirements: [
-      'Akun Developer Google Play Console aktif',
-      'Sertakan email pemulihan & detail pendaftaran',
-      'Tidak ada pelanggaran aplikasi/banned',
-      'Akun terverifikasi identitas lengkap'
+      'Nama: Wajib nama manusia asli (bukan bot/huruf acak).',
+      'Tahun Lahir: Rentang tahun 1990 - 2005.',
+      'Password Wajib: aass1122 / sgsg1122 / fineirga / prabujaya',
+      'Email & No. Pemulihan: Wajib KOSONG.',
+      'Tersedia rate khusus bagi supplier besar/rutin.'
     ]
   }
 ];
 
 export const DEFAULT_SETTINGS: AppSettings = {
   adminPin: '123456',
-  whatsappAdmin: '6281234567890',
-  recommendedRecoveryDomain: 'juragangmail.com'
+  whatsappAdmin: '6283867031565', // Admin 1
+  whatsappAdmin2: '6285716766584', // Admin 2
+  recommendedRecoveryDomain: ''
 };
 
 export const MOCK_USERS: User[] = [
@@ -114,12 +113,12 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
       { email: 'budisantoso100@gmail.com', pass: 'rahasia123', recovery: 'rec_budi@juragangmail.com', status: 'valid' },
       { email: 'budisantoso101@gmail.com', pass: 'rahasia123', recovery: 'rec_budi@juragangmail.com', status: 'valid' }
     ],
-    categoryKey: 'fresh',
-    categoryLabel: 'Gmail Fresh (Baru Dibuat)',
-    ratePerAccount: 1800,
+    categoryKey: 'tier_1',
+    categoryLabel: '1 - 20 Akun',
+    ratePerAccount: 2500,
     quantitySubmitted: 3,
     quantityValid: 3,
-    totalPayout: 5400,
+    totalPayout: 7500,
     status: 'completed',
     adminNotes: 'Semua akun valid, pembayaran sukses ditransfer ke DANA Budi Santoso.',
     updatedAt: '2026-07-14T02:15:00.000Z'
@@ -140,12 +139,12 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
       { email: 'sitiair4@gmail.com', pass: 'pwSiti123', recovery: 'siti_rec@juragangmail.com', status: 'invalid' },
       { email: 'sitiair5@gmail.com', pass: 'pwSiti123', recovery: 'siti_rec@juragangmail.com', status: 'valid' }
     ],
-    categoryKey: 'aged_1m',
-    categoryLabel: 'Gmail Aged (1 - 3 Bulan)',
-    ratePerAccount: 3200,
+    categoryKey: 'tier_1',
+    categoryLabel: '1 - 20 Akun',
+    ratePerAccount: 2500,
     quantitySubmitted: 5,
     quantityValid: 4,
-    totalPayout: 12800,
+    totalPayout: 10000,
     status: 'completed',
     adminNotes: 'Akun sitiair4 sandi salah/minta OTP nomor HP. Sisanya 4 akun valid. Pembayaran ditransfer ke BCA.',
     updatedAt: '2026-07-13T11:00:00.000Z'
@@ -163,9 +162,9 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
       { email: 'agusold1@gmail.com', pass: 'aguspass12', recovery: 'rec_agus@juragangmail.com' },
       { email: 'agusold2@gmail.com', pass: 'aguspass12', recovery: 'rec_agus@juragangmail.com' }
     ],
-    categoryKey: 'aged_6m',
-    categoryLabel: 'Gmail Aged Tua (6+ Bulan)',
-    ratePerAccount: 4800,
+    categoryKey: 'tier_1',
+    categoryLabel: '1 - 20 Akun',
+    ratePerAccount: 2500,
     quantitySubmitted: 2,
     quantityValid: 0,
     totalPayout: 0,
@@ -184,9 +183,9 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     gmails: [
       { email: 'dewigame1@gmail.com', pass: 'dewipass', recovery: 'rec_dewi@juragangmail.com', status: 'invalid' }
     ],
-    categoryKey: 'fresh',
-    categoryLabel: 'Gmail Fresh (Baru Dibuat)',
-    ratePerAccount: 1800,
+    categoryKey: 'tier_1',
+    categoryLabel: '1 - 20 Akun',
+    ratePerAccount: 2500,
     quantitySubmitted: 1,
     quantityValid: 0,
     totalPayout: 0,

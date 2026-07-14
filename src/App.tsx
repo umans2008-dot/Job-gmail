@@ -48,7 +48,18 @@ export default function App() {
     // 1. Rates
     const storedRates = localStorage.getItem('jg_rates');
     if (storedRates) {
-      try { setRates(JSON.parse(storedRates)); } catch (e) { setRates(DEFAULT_RATES); }
+      try { 
+        const parsed = JSON.parse(storedRates);
+        const hasOldKeys = Array.isArray(parsed) && parsed.some(r => r.key === 'fresh' || r.key === 'aged_1m' || r.key === 'aged_6m');
+        if (hasOldKeys) {
+          setRates(DEFAULT_RATES);
+          localStorage.setItem('jg_rates', JSON.stringify(DEFAULT_RATES));
+        } else {
+          setRates(parsed);
+        }
+      } catch (e) { 
+        setRates(DEFAULT_RATES); 
+      }
     } else {
       setRates(DEFAULT_RATES);
       localStorage.setItem('jg_rates', JSON.stringify(DEFAULT_RATES));
@@ -75,7 +86,18 @@ export default function App() {
     // 4. Transactions (Deposits)
     const storedTx = localStorage.getItem('jg_transactions');
     if (storedTx) {
-      try { setTransactions(JSON.parse(storedTx)); } catch (e) { setTransactions(MOCK_TRANSACTIONS); }
+      try { 
+        const parsed = JSON.parse(storedTx);
+        const hasOldKeys = Array.isArray(parsed) && parsed.some(tx => tx.categoryKey === 'fresh' || tx.categoryKey === 'aged_1m' || tx.categoryKey === 'aged_6m');
+        if (hasOldKeys) {
+          setTransactions(MOCK_TRANSACTIONS);
+          localStorage.setItem('jg_transactions', JSON.stringify(MOCK_TRANSACTIONS));
+        } else {
+          setTransactions(parsed);
+        }
+      } catch (e) { 
+        setTransactions(MOCK_TRANSACTIONS); 
+      }
     } else {
       setTransactions(MOCK_TRANSACTIONS);
       localStorage.setItem('jg_transactions', JSON.stringify(MOCK_TRANSACTIONS));
@@ -320,6 +342,11 @@ export default function App() {
     syncAnnouncements(nextAnn);
   };
 
+  const handleDeleteUserByAdmin = (userId: string) => {
+    const nextUsers = users.filter(u => u.id !== userId);
+    syncUsers(nextUsers);
+  };
+
   // ADMIN PIN HANDLERS
   const handleAdminPinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -335,10 +362,14 @@ export default function App() {
   };
 
   // CALCULATOR VARIABLES
-  const [calcCategory, setCalcCategory] = useState('fresh');
   const [calcQty, setCalcQty] = useState(50);
-  const calcRateObj = useMemo(() => rates.find(r => r.key === calcCategory) || rates[0], [rates, calcCategory]);
-  const calcTotalPayout = useMemo(() => (calcRateObj?.price || 0) * calcQty, [calcRateObj, calcQty]);
+  const calcRatePerAccount = useMemo(() => {
+    if (calcQty <= 20) return 2200;
+    if (calcQty <= 50) return 3200;
+    if (calcQty <= 300) return 4200;
+    return 5200;
+  }, [calcQty]);
+  const calcTotalPayout = useMemo(() => calcRatePerAccount * calcQty, [calcRatePerAccount, calcQty]);
 
   const formatRupiah = (val: number) => {
     return 'Rp ' + val.toLocaleString('id-ID');
@@ -572,6 +603,7 @@ export default function App() {
                 withdrawals={withdrawals}
                 onUpdateWithdrawal={handleUpdateWithdrawalByAdmin}
                 users={users}
+                onDeleteUser={handleDeleteUserByAdmin}
                 announcements={announcements}
                 onAddAnnouncement={handleAddAnnouncementByAdmin}
                 onDeleteAnnouncement={handleDeleteAnnouncementByAdmin}
@@ -581,49 +613,136 @@ export default function App() {
             {/* 5. PANDUAN SETOR */}
             {activeTab === 'panduan' && (
               <div className="space-y-8 max-w-4xl mx-auto" id="panduan-setor">
-                <div className="bg-[#080d0f] border border-slate-900 rounded-3xl p-6 sm:p-10 space-y-4 shadow-xl">
-                  <span className="text-[10px] font-bold font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full uppercase">GUIDELINES</span>
-                  <h2 className="text-3xl font-black text-slate-100 font-mono tracking-tight uppercase">PANDUAN PEMBUATAN & PENYETORAN GMAIL</h2>
-                  <p className="text-slate-400 text-xs leading-relaxed">
-                    Baca panduan ini dengan seksama agar persentase penerimaan akun Gmail Anda mencapai 100% dan terhindar dari pemblokiran atau penolakan sistem manual checker.
+                {/* Welcome Card */}
+                <div className="bg-gradient-to-r from-[#080d0f] to-slate-950 border border-slate-900 rounded-3xl p-6 sm:p-10 space-y-4 shadow-xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+                  <span className="text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full uppercase">INFORMASI UTAMA</span>
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-100 font-mono tracking-tight uppercase">📝 RULES & RATE SUPPLIER JURAGAN GMAIL</h2>
+                  <p className="text-slate-400 text-xs leading-relaxed max-w-2xl">
+                    Sistem kerja ini menggunakan metode setoran. Artinya, Anda membuat email sesuai ketentuan yang diberikan oleh admin di bawah ini, lalu menyetorkannya ke dasbor ini untuk dilakukan pengecekan transparan.
                   </p>
+                  <div className="pt-2">
+                    <a
+                      href="https://whatsapp.com/channel/0029Vb8VtFzDeONEEfhW8J1D"
+                      target="_blank"
+                      referrerPolicy="no-referrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-mono font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2 rounded-xl transition-all"
+                    >
+                      <span>Ikuti Channel WhatsApp Resmi</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
                 </div>
 
-                {/* Steps Details */}
+                {/* 4 Rules Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-[#080d0f] border border-slate-900 p-6 rounded-2xl space-y-3.5 shadow-md text-xs">
-                    <h3 className="text-sm font-black text-slate-100 font-mono uppercase tracking-tight text-amber-400">1. Ketentuan Pembuatan Akun</h3>
-                    <ul className="space-y-2.5 text-slate-300 leading-relaxed list-disc pl-4">
-                      <li>Gunakan nama orang Indonesia asli (bukan kombinasi huruf acak).</li>
-                      <li>Wajib mengatur bahasa default Gmail ke <strong className="text-slate-200">English (US)</strong>.</li>
-                      <li><strong>PENTING:</strong> Segera hapus nomor handphone verifikasi dari setelan keamanan Google setelah pembuatan selesai agar akun dapat diakses langsung oleh tim kami tanpa OTP.</li>
-                      <li>Sandi wajib seragam atau mudah diketik (contoh: <strong className="text-slate-200">sandiowner123</strong>) untuk meminimalkan salah ketik saat menyetor masal.</li>
+                  {/* Ketentuan Akun */}
+                  <div className="bg-[#080d0f] border border-slate-900 p-6 rounded-2xl space-y-4 shadow-md text-xs">
+                    <h3 className="text-sm font-black text-amber-400 font-mono uppercase tracking-tight flex items-center gap-2 border-b border-slate-950 pb-2">
+                      <span className="bg-amber-400/10 w-6 h-6 rounded-md flex items-center justify-center text-amber-400 font-mono text-[11px]">1</span>
+                      <span>KETENTUAN AKUN (WAJIB)</span>
+                    </h3>
+                    <ul className="space-y-3 text-slate-300 leading-relaxed list-none">
+                      <li className="flex items-start gap-2">
+                        <span className="text-emerald-400 font-mono">✔</span>
+                        <div><strong>Nama Asli:</strong> Wajib nama manusia asli Indonesia (bukan bot/huruf acak).</div>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-emerald-400 font-mono">✔</span>
+                        <div><strong>Tahun Lahir:</strong> Harus berjarak rentang tahun 1990 - 2005.</div>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-emerald-400 font-mono">✔</span>
+                        <div>
+                          <strong>Pilihan Password:</strong> Sandi wajib menggunakan salah satu kata berikut:
+                          <div className="bg-slate-950/80 border border-slate-900 px-2.5 py-1.5 rounded font-mono text-emerald-400 mt-1.5 flex gap-1.5 flex-wrap text-[10px]">
+                            <span>aass1122</span>
+                            <span className="text-slate-700">|</span>
+                            <span>sgsg1122</span>
+                            <span className="text-slate-700">|</span>
+                            <span>fineirga</span>
+                            <span className="text-slate-700">|</span>
+                            <span>prabujaya</span>
+                          </div>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-amber-400 font-mono">⚠</span>
+                        <div><strong>Pemulihan Kosong:</strong> Email pemulihan & No. HP wajib <strong>KOSONG</strong> (bersih dari pemulihan/2FA).</div>
+                      </li>
                     </ul>
                   </div>
 
-                  <div className="bg-[#080d0f] border border-slate-900 p-6 rounded-2xl space-y-3.5 shadow-md text-xs">
-                    <h3 className="text-sm font-black text-slate-100 font-mono uppercase tracking-tight text-amber-400">2. Kewajiban Email Pemulihan (Recovery)</h3>
-                    <ul className="space-y-2.5 text-slate-300 leading-relaxed list-disc pl-4">
-                      <li>Setiap akun Gmail yang disetor <strong>WAJIB</strong> dilengkapi dengan email pemulihan aktif.</li>
-                      <li>Gunakan subdomain rekomendasi admin: <strong className="text-emerald-400 font-mono">@{settings.recommendedRecoveryDomain}</strong>.</li>
-                      <li>Contoh: Jika email Anda <strong className="text-slate-300">budisantoso12@gmail.com</strong>, maka set email pemulihan ke <strong className="text-slate-300">rec_budi12@{settings.recommendedRecoveryDomain}</strong>.</li>
-                      <li>Kami tidak mengizinkan email pemulihan asal-asalan yang tidak dapat diakses atau menggunakan domain abal-abal karena rentan terkena verifikasi checkpoint.</li>
+                  {/* Daftar Rate */}
+                  <div className="bg-[#080d0f] border border-slate-900 p-6 rounded-2xl space-y-4 shadow-md text-xs">
+                    <h3 className="text-sm font-black text-amber-400 font-mono uppercase tracking-tight flex items-center gap-2 border-b border-slate-950 pb-2">
+                      <span className="bg-amber-400/10 w-6 h-6 rounded-md flex items-center justify-center text-amber-400 font-mono text-[11px]">2</span>
+                      <span>DAFTAR RATE PENDAPATAN</span>
+                    </h3>
+                    <p className="text-slate-400 leading-relaxed">
+                      Rate ditentukan secara progresif berdasarkan akumulasi jumlah akun valid yang Anda setorkan sekaligus:
+                    </p>
+                    <div className="space-y-2 font-mono">
+                      <div className="flex justify-between items-center bg-slate-950/40 p-2 rounded border border-slate-900">
+                        <span className="text-slate-300">1 - 20 Akun:</span>
+                        <strong className="text-emerald-400">Rp 2.200 <span className="text-slate-500 font-normal">/ akun</span></strong>
+                      </div>
+                      <div className="flex justify-between items-center bg-slate-950/40 p-2 rounded border border-slate-900">
+                        <span className="text-slate-300">21 - 50 Akun:</span>
+                        <strong className="text-emerald-400">Rp 3.200 <span className="text-slate-500 font-normal">/ akun</span></strong>
+                      </div>
+                      <div className="flex justify-between items-center bg-slate-950/40 p-2 rounded border border-slate-900">
+                        <span className="text-slate-300">51 - 300 Akun:</span>
+                        <strong className="text-emerald-400">Rp 4.200 <span className="text-slate-500 font-normal">/ akun</span></strong>
+                      </div>
+                      <div className="flex justify-between items-center bg-slate-950/40 p-2 rounded border border-slate-900">
+                        <span className="text-slate-300">300+ Akun:</span>
+                        <strong className="text-emerald-400">Rp 5.200 <span className="text-slate-500 font-normal">/ akun</span></strong>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-500 italic">
+                      📌 Khusus supplier besar/rutin harian, tersedia rate khusus. Hubungi admin.
+                    </p>
+                  </div>
+
+                  {/* Jam Kerja */}
+                  <div className="bg-[#080d0f] border border-slate-900 p-6 rounded-2xl space-y-4 shadow-md text-xs">
+                    <h3 className="text-sm font-black text-amber-400 font-mono uppercase tracking-tight flex items-center gap-2 border-b border-slate-950 pb-2">
+                      <span className="bg-amber-400/10 w-6 h-6 rounded-md flex items-center justify-center text-amber-400 font-mono text-[11px]">3</span>
+                      <span>JAM KERJA & PROSES WD</span>
+                    </h3>
+                    <ul className="space-y-3 text-slate-300 leading-relaxed list-disc pl-4">
+                      <li><strong>Buka Toko / Jam Operasional:</strong> Mulai pukul 06.00 hingga 16.00 WIB setiap hari.</li>
+                      <li><strong>Pencairan Dana (WD):</strong> Permintaan penarikan diproses paling cepat 1x24 jam, paling lambat 24-48 jam kerja (antri sesuai antrean bendahara).</li>
                     </ul>
+                  </div>
+
+                  {/* Garansi Kami */}
+                  <div className="bg-[#080d0f] border border-slate-900 p-6 rounded-2xl space-y-4 shadow-md text-xs">
+                    <h3 className="text-sm font-black text-amber-400 font-mono uppercase tracking-tight flex items-center gap-2 border-b border-slate-950 pb-2">
+                      <span className="bg-amber-400/10 w-6 h-6 rounded-md flex items-center justify-center text-amber-400 font-mono text-[11px]">4</span>
+                      <span>GARANSI JURAGAN GMAIL</span>
+                    </h3>
+                    <p className="text-slate-300 leading-relaxed">
+                      Semua data akun yang disetorkan akan diperiksa secara teliti, adil, jujur dan transparan oleh checker kami.
+                    </p>
+                    <p className="text-slate-300 leading-relaxed font-bold">
+                      Hasil pengecekan akan dilaporkan apa adanya di riwayat transaksi tanpa manipulasi atau pengurangan jumlah akun valid.
+                    </p>
                   </div>
                 </div>
 
                 {/* Text Formatting format guide */}
                 <div className="bg-[#080d0f] border border-slate-900 p-6 rounded-2xl space-y-4 shadow-md text-xs">
-                  <h3 className="text-sm font-black text-slate-100 font-mono uppercase tracking-tight text-amber-400">3. Format Penulisan Teks Setor</h3>
-                  <p className="text-slate-400">Saat menginput daftar Gmail di tab Setor Gmail, ikuti format pemisah garis tegak berikut:</p>
+                  <h3 className="text-sm font-black text-amber-400 font-mono uppercase tracking-tight">Format Penulisan Teks Setor</h3>
+                  <p className="text-slate-400">Saat menginput daftar Gmail di tab Setor Gmail, ikuti format pemisah garis tegak <strong className="text-slate-300">|</strong> berikut (Satu akun per baris):</p>
                   
                   <div className="bg-[#030607] border border-slate-900 p-4 rounded-xl text-emerald-400 font-mono leading-relaxed select-all">
-                    namaemail1@gmail.com|passwordnya|pemulihannya@{settings.recommendedRecoveryDomain}<br />
-                    namaemail2@gmail.com|passwordnya|pemulihannya@{settings.recommendedRecoveryDomain}<br />
-                    namaemail3@gmail.com|passwordnya|pemulihannya@{settings.recommendedRecoveryDomain}
+                    alamatemailmu1@gmail.com|passwordpilihanmu<br />
+                    alamatemailmu2@gmail.com|passwordpilihanmu
                   </div>
 
-                  <p className="text-slate-400">Pastikan tidak ada spasi berlebih atau baris kosong yang merusak struktur pembacaan parsing.</p>
+                  <p className="text-slate-400">Pastikan tidak ada spasi berlebih atau baris kosong agar parsing otomatis sistem tidak error.</p>
                 </div>
               </div>
             )}
@@ -634,62 +753,48 @@ export default function App() {
                 <div className="bg-[#080d0f] border border-slate-900 rounded-3xl p-6 sm:p-10 text-center space-y-4 shadow-xl">
                   <span className="text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase">CALCULATOR</span>
                   <h2 className="text-3xl font-black text-slate-100 font-mono tracking-tight uppercase">KALKULATOR ESTIMASI PENDAPATAN</h2>
-                  <p className="text-slate-400 text-xs">Hitung taksiran keuntungan uang tunai yang akan Anda dapatkan dari jumlah akun Gmail yang Anda miliki.</p>
+                  <p className="text-slate-400 text-xs">Hitung taksiran keuntungan uang tunai otomatis berdasarkan skema rate progresif harian kami.</p>
                 </div>
 
                 {/* Interactive Calc block */}
                 <div className="bg-[#080d0f] border border-slate-900 rounded-2xl p-6 space-y-6 shadow-md text-xs font-mono">
                   
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Pilih Kategori Gmail</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {rates.map((r) => (
-                        <div
-                          key={r.key}
-                          onClick={() => setCalcCategory(r.key)}
-                          className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                            calcCategory === r.key
-                              ? 'border-emerald-500/40 bg-emerald-950/10'
-                              : 'border-slate-900 hover:border-slate-800 bg-[#05080a]'
-                          }`}
-                        >
-                          <div className="flex justify-between font-bold text-[11px]">
-                            <span className="text-slate-200">{r.label}</span>
-                            {calcCategory === r.key && <span className="text-emerald-400">✔</span>}
-                          </div>
-                          <span className="block text-emerald-400 mt-1 font-extrabold">Rp {r.price.toLocaleString('id-ID')} / Akun</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
                     <div className="flex justify-between items-center mb-1.5">
                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Jumlah Akun yang Disetor</label>
-                      <span className="text-amber-400 font-bold text-xs">{calcQty} Akun</span>
+                      <span className="text-amber-400 font-bold text-sm bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-lg">{calcQty} Akun</span>
                     </div>
                     <input
                       type="range"
-                      min={10}
-                      max={1000}
-                      step={10}
+                      min={1}
+                      max={500}
+                      step={1}
                       value={calcQty}
-                      onChange={(e) => setCalcQty(parseInt(e.target.value) || 10)}
-                      className="w-full h-1 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                      onChange={(e) => setCalcQty(parseInt(e.target.value) || 1)}
+                      className="w-full h-1 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-emerald-400 my-4"
                     />
                     <div className="flex justify-between text-[10px] text-slate-500 mt-1.5">
-                      <span>10 Akun</span>
-                      <span>500 Akun</span>
-                      <span>1.000 Akun</span>
+                      <span>1 Akun</span>
+                      <span>50 Akun (Rate Rp3.400)</span>
+                      <span>300 Akun (Rate Rp4.500)</span>
+                      <span>500 Akun (Rate Rp5.600)</span>
                     </div>
                   </div>
 
-                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-900/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  {/* Active Rate Indicator */}
+                  <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-900 flex justify-between items-center">
+                    <span className="text-slate-400 font-mono text-[11px]">Rate Aktif Anda:</span>
+                    <strong className="text-emerald-400 text-sm">Rp {calcRatePerAccount.toLocaleString('id-ID')} / Akun</strong>
+                  </div>
+
+                  <div className="p-5 bg-slate-950 rounded-2xl border border-slate-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="space-y-1">
                       <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wide">ESTIMASI TOTAL PENCAIRAN (PAYOUT):</span>
-                      <p className="text-slate-400 text-[11px]">Dihitung berdasarkan harga beli {calcRateObj?.label} senilai {formatRupiah(calcRateObj?.price || 0)} per akun valid.</p>
+                      <p className="text-slate-400 text-[11px] leading-relaxed">
+                        Total yang akan Anda dapatkan dari {calcQty} akun valid senilai {formatRupiah(calcTotalPayout)}.
+                      </p>
                     </div>
-                    <strong className="text-emerald-400 text-xl font-black font-mono shrink-0">{formatRupiah(calcTotalPayout)}</strong>
+                    <strong className="text-emerald-400 text-2xl font-black font-mono shrink-0">{formatRupiah(calcTotalPayout)}</strong>
                   </div>
 
                   {/* Sign-up trigger for guest */}
